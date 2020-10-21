@@ -18,8 +18,10 @@ run:
 
 fresh: clean build run
 
-test:
-	go test
+test: build
+	rm -rf ./test/validations.gen
+	./gandalf.bin -dir test -file test/validations_gen.go
+	go test -v ./test
 
 clean:
 	go clean

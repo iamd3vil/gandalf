@@ -59,5 +59,4 @@ func main() {
 	if _, err := wtr.Write(fmted); err != nil {
 		log.Fatalf("error while storing the file: %v", err)
 	}
-
 }

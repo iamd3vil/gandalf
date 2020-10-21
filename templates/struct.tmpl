@@ -6,8 +6,8 @@ import "errors"
 {{- range .Structs}}
 func (s *{{.StructName}}) Validate() error {
     {{- range .Constraints}}
-        if s.{{.FieldName}} {{.Op}} {{.Value}} {
-            return errors.New("{{.FieldName}} can't be blank")
+        if {{.FieldName}} {{.Op}} {{.Value}} {
+            return errors.New("{{.Error}}")
         }
     {{- end}}
     return nil

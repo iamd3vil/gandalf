@@ -49,7 +49,7 @@ func parse(name string, templateNames []string, fs stuffbin.FileSystem) (*templa
 }
 
 func writeTemplate(tmpl *template.Template, config map[string]interface{}, dest io.Writer) error {
-	// apply the variable and save the rendered template to the file.
+	// apply the variable and save the rendered template to dest.
 	return tmpl.Execute(dest, config)
 }
 
