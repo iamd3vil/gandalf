@@ -1,0 +1,15 @@
+package {{.Pkg}}
+
+import "errors"
+
+
+{{- range .Structs}}
+func (s *{{.StructName}}) Validate() error {
+    {{- range .Constraints}}
+        if s.{{.FieldName}} {{.Op}} {{.Value}} {
+            return errors.New("{{.FieldName}} can't be blank")
+        }
+    {{- end}}
+    return nil
+}
+{{- end}}
