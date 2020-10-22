@@ -18,6 +18,9 @@ func getConstraints(fields []structField) []constraint {
 			case "min":
 				cons := getConstraintForMin(f.Name, f.Type, c[1])
 				cs = append(cs, cons)
+			case "max":
+				cons := getConstraintForMax(f.Name, f.Type, c[1])
+				cs = append(cs, cons)
 			}
 		}
 	}
@@ -48,6 +51,24 @@ func getConstraintForMin(name, typ, value string) constraint {
 		Op:        "<",
 		Value:     value,
 		Error:     fmt.Sprintf("%s can't be less than %s", strings.ToLower(name), value),
+	}
+	switch typ {
+	case "string":
+		c.FieldName = fmt.Sprintf("len(s.%s)", name)
+	}
+	// Handle arrays
+	if strings.HasPrefix(typ, "[]") || strings.HasPrefix(typ, "map") {
+		c.FieldName = fmt.Sprintf("len(s.%s)", name)
+	}
+	return c
+}
+
+func getConstraintForMax(name, typ, value string) constraint {
+	c := constraint{
+		FieldName: fmt.Sprintf("s.%s", name),
+		Op:        ">",
+		Value:     value,
+		Error:     fmt.Sprintf("%s can't be greather than %s", strings.ToLower(name), value),
 	}
 	switch typ {
 	case "string":

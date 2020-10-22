@@ -9,11 +9,17 @@ func (s *TestStruct) Validate() error {
 	if len(s.Name) < 3 {
 		return errors.New("name can't be less than 3")
 	}
+	if len(s.Name) > 5 {
+		return errors.New("name can't be greather than 5")
+	}
 	if s.Age == 0 {
 		return errors.New("age can't be blank")
 	}
 	if s.Age < 10 {
 		return errors.New("age can't be less than 10")
+	}
+	if s.Age > 30 {
+		return errors.New("age can't be greather than 30")
 	}
 	if s.Height == 0 {
 		return errors.New("height can't be blank")
@@ -21,11 +27,17 @@ func (s *TestStruct) Validate() error {
 	if s.Height < 1.5 {
 		return errors.New("height can't be less than 1.5")
 	}
+	if s.Height > 10.5 {
+		return errors.New("height can't be greather than 10.5")
+	}
 	if s.List == nil {
 		return errors.New("list can't be blank")
 	}
 	if len(s.List) < 3 {
 		return errors.New("list can't be less than 3")
+	}
+	if len(s.List) > 5 {
+		return errors.New("list can't be greather than 5")
 	}
 	return nil
 }
