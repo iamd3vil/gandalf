@@ -18,6 +18,12 @@ func getConstraints(fields []structField) []constraint {
 			case "min":
 				cons := getConstraintForMin(f.Name, f.Type, c[1])
 				cs = append(cs, cons)
+			case "mineq":
+				cons := getConstraintForMinEq(f.Name, f.Type, c[1])
+				cs = append(cs, cons)
+			case "maxeq":
+				cons := getConstraintForMaxEq(f.Name, f.Type, c[1])
+				cs = append(cs, cons)
 			case "max":
 				cons := getConstraintForMax(f.Name, f.Type, c[1])
 				cs = append(cs, cons)
@@ -79,4 +85,16 @@ func getConstraintForMax(name, typ, value string) constraint {
 		c.FieldName = fmt.Sprintf("len(s.%s)", name)
 	}
 	return c
+}
+
+func getConstraintForMinEq(name, typ, value string) constraint {
+	cons := getConstraintForMin(name, typ, value)
+	cons.Op = "<="
+	return cons
+}
+
+func getConstraintForMaxEq(name, typ, value string) constraint {
+	cons := getConstraintForMax(name, typ, value)
+	cons.Op = ">="
+	return cons
 }
