@@ -1,4 +1,4 @@
-PHONY : build run fresh test clean
+PHONY : build run fresh test clean pack-releases
 
 BIN := gandalf.bin
 

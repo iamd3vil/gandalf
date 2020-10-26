@@ -1,0 +1,24 @@
+env:
+    - CGO_ENABLED=0
+    - RELEASE_BUILDS=dist/gandalf_darwin_amd64/gandalf dist/gandalf_linux_amd64/gandalf dist/gandalf_windows_amd64/gandalf.exe dist/gandalf_linux_arm64/gandalf 
+builds:
+  - binary: gandalf
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    dir: cmd/generator
+    ldflags:
+      - -s -w -X "main.buildVersion={{ .Tag }} ({{ .ShortCommit }} {{ .Date }})"
+    hooks:
+      # stuff executables with static assets.
+      post: make pack-releases
+  
+archives:
+  - format: tar.gz
+    files:
+      - README.md
+      - LICENSE
