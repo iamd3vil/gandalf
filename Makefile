@@ -19,7 +19,7 @@ run:
 fresh: clean build run
 
 test: build
-	rm -rf ./test/validations.gen
+	rm -rf ./test/validations_gen.go
 	./gandalf.bin -dir test -file test/validations_gen.go
 	go test -v ./test
 
@@ -28,7 +28,7 @@ clean:
 	rm -f ${BIN}
 
 
-# pack-releases runns stuffbin packing on a given list of
+# pack-releases runs stuffbin packing on a given list of
 # binaries. This is used with goreleaser for packing
 # release builds for cross-build targets.
 pack-releases:
