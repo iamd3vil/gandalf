@@ -7,3 +7,8 @@ type TestStruct struct {
 	List   []string `validate:"required min:3 max:5"`
 	Dummy  string
 }
+
+type TestEqField struct {
+	Name  string `validate:"eqfield:Name2"`
+	Name2 string
+}

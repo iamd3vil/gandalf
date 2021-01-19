@@ -27,6 +27,9 @@ func getConstraints(fields []structField) []constraint {
 			case "max":
 				cons := getConstraintForMax(f.Name, f.Type, c[1])
 				cs = append(cs, cons)
+			case "eqfield":
+				cons := getConstraintForEqField(f.Name, c[1])
+				cs = append(cs, cons)
 			}
 		}
 	}
@@ -97,4 +100,14 @@ func getConstraintForMaxEq(name, typ, value string) constraint {
 	cons := getConstraintForMax(name, typ, value)
 	cons.Op = ">="
 	return cons
+}
+
+func getConstraintForEqField(name, value string) constraint {
+	c := constraint{
+		FieldName: fmt.Sprintf("s.%s", name),
+		Op:        "!=",
+		Value:     fmt.Sprintf("s.%s", value),
+	}
+
+	return c
 }

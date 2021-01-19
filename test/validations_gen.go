@@ -41,3 +41,9 @@ func (s *TestStruct) Validate() error {
 	}
 	return nil
 }
+func (s *TestEqField) Validate() error {
+	if s.Name != s.Name2 {
+		return errors.New("")
+	}
+	return nil
+}

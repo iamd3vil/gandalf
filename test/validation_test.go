@@ -132,3 +132,25 @@ func TestValidationMin(t *testing.T) {
 		t.Log(err)
 	})
 }
+
+func TestValidationEqField(t *testing.T) {
+	s := TestEqField{
+		Name:  "test",
+		Name2: "test2",
+	}
+
+	t.Run("error-eqfield", func(t *testing.T) {
+		err := s.Validate()
+		if err == nil {
+			t.Fatalf("struct is supposed to be invalid")
+		}
+	})
+
+	t.Run("valid-eqfield", func(t *testing.T) {
+		s.Name = s.Name2
+		err := s.Validate()
+		if err != nil {
+			t.Fatalf("struct is supposed to be valid")
+		}
+	})
+}

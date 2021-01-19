@@ -16,7 +16,7 @@ build:
 run:
 	./${BIN}
 
-fresh: clean build run
+fresh: clean build
 
 test: build
 	rm -rf ./test/validations_gen.go
