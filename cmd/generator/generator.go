@@ -21,6 +21,8 @@ type constraint struct {
 func generateCodeForStructs(fs stuffbin.FileSystem, pkg string, structs map[string][]structField, dest io.Writer) error {
 	tmplContext := make(map[string]interface{})
 	tmplContext["Pkg"] = pkg
+	tmplContext["BuildDate"] = buildDate
+	tmplContext["BuildVersion"] = buildVersion
 
 	sts := make([]structContext, 0)
 	for name, fields := range structs {

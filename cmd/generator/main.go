@@ -12,6 +12,10 @@ import (
 	"os"
 )
 
+var (
+	buildDate, buildVersion string
+)
+
 func main() {
 	pkg := flag.String("pkg", "main", "Package to be given for the generated code")
 	dir := flag.String("dir", ".", `Path of the directory for finding source files with structs.`)
