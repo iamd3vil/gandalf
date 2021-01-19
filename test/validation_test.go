@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestValidationRequired(t *testing.T) {
 	t.Run("empty-struct", func(t *testing.T) {
@@ -148,6 +150,27 @@ func TestValidationEqField(t *testing.T) {
 
 	t.Run("valid-eqfield", func(t *testing.T) {
 		s.Name = s.Name2
+		err := s.Validate()
+		if err != nil {
+			t.Fatalf("struct is supposed to be valid")
+		}
+	})
+}
+
+func TestValidationRegexp(t *testing.T) {
+	s := TestRegex{
+		Age: "abc",
+	}
+
+	t.Run("error-regexp", func(t *testing.T) {
+		err := s.Validate()
+		if err == nil {
+			t.Fatalf("struct is supposed to be invalid")
+		}
+	})
+
+	t.Run("valid-regexp", func(t *testing.T) {
+		s.Age = "234"
 		err := s.Validate()
 		if err != nil {
 			t.Fatalf("struct is supposed to be valid")

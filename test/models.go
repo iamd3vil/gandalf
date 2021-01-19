@@ -12,3 +12,7 @@ type TestEqField struct {
 	Name  string `validate:"eqfield:Name2"`
 	Name2 string
 }
+
+type TestRegex struct {
+	Age string `validate:"regexp:'^[0-9]+$'"`
+}

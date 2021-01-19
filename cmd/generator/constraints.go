@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func getConstraints(fields []structField) []constraint {
+func getConstraints(structName string, fields []structField) []constraint {
 	cs := []constraint{}
 	for _, f := range fields {
 		conditions := strings.Split(f.Tag, " ")
@@ -29,6 +29,9 @@ func getConstraints(fields []structField) []constraint {
 				cs = append(cs, cons)
 			case "eqfield":
 				cons := getConstraintForEqField(f.Name, c[1])
+				cs = append(cs, cons)
+			case "regexp":
+				cons := getConstraintForRegex(f.Name, structName, c[1])
 				cs = append(cs, cons)
 			}
 		}
@@ -107,7 +110,16 @@ func getConstraintForEqField(name, value string) constraint {
 		FieldName: fmt.Sprintf("s.%s", name),
 		Op:        "!=",
 		Value:     fmt.Sprintf("s.%s", value),
+		Error:     fmt.Sprintf("%s should be equal to %s", name, value),
 	}
 
+	return c
+}
+
+func getConstraintForRegex(fieldName, structName string, regexp string) constraint {
+	c := constraint{
+		FieldName: fmt.Sprintf("!%s%sRegex.MatchString(s.%s)", structName, fieldName, fieldName),
+		Error:     fmt.Sprintf("%s doesn't match given regex", fieldName),
+	}
 	return c
 }

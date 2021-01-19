@@ -24,11 +24,20 @@ func generateCodeForStructs(fs stuffbin.FileSystem, pkg string, structs map[stri
 	tmplContext["BuildDate"] = buildDate
 	tmplContext["BuildVersion"] = buildVersion
 
+	// Check and aggregate all Regexes
+	regexes := []Regex{}
+	for name, fields := range structs {
+		rs := getRegexes(name, fields)
+		regexes = append(regexes, rs...)
+	}
+
+	tmplContext["Regexes"] = regexes
+
 	sts := make([]structContext, 0)
 	for name, fields := range structs {
 		sctx := structContext{
 			StructName:  name,
-			Constraints: getConstraints(fields),
+			Constraints: getConstraints(name, fields),
 		}
 		sts = append(sts, sctx)
 	}
