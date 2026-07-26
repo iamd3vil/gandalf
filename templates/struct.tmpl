@@ -3,7 +3,9 @@ package {{.Pkg}}
 
 import (
     "errors"
+    {{- if .Regexes}}
     "regexp"
+    {{- end}}
 )
 
 {{if .Regexes}}
