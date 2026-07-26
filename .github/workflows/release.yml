@@ -25,14 +25,14 @@ jobs:
 
       - name: Install stuffbin
         # goreleaser's post hook invokes stuffbin to embed ./templates into
-        # each cross-compiled binary. Pinned to v1.1.0 to match the library
-        # version imported by the generator (see go.mod).
-        run: go install github.com/knadh/stuffbin/stuffbin@v1.1.0
+        # each cross-compiled binary. Version matches the library in go.mod.
+        run: go install github.com/knadh/stuffbin/stuffbin@v1.3.0
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
+          # Pin to a specific release for reproducible builds; bump manually.
+          version: v2.17.0
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
