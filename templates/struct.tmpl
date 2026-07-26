@@ -20,9 +20,15 @@ var (
 
 func (s *{{.StructName}}) Validate() error {
     {{- range .Constraints}}
+        {{- if .Raw}}
+        if {{.Raw}} {
+            return errors.New("{{.Error}}")
+        }
+        {{- else}}
         if {{.FieldName}} {{.Op}} {{.Value}} {
             return errors.New("{{.Error}}")
         }
+        {{- end}}
     {{- end}}
     return nil
 }

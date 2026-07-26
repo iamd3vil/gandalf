@@ -17,6 +17,11 @@ type constraint struct {
 	Op        string
 	Value     string
 	Error     string
+	// Raw is an optional Go expression for complex constraints that don't
+	// fit the simple FieldName-Op-Value pattern (e.g. oneof, contains,
+	// unique, validate, required_if). When non-empty, the template renders
+	// it directly instead of assembling <FieldName> <Op> <Value>.
+	Raw string
 }
 
 func generateCodeForStructs(fs stuffbin.FileSystem, pkg string, structs map[string][]structField, dest io.Writer) error {
