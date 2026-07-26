@@ -21,6 +21,10 @@ type Regex struct {
 // generation instead of at generated-package init time, and quoted with
 // strconv.Quote so that backslashes, quotes, and other special characters
 // survive round-tripping through the generated Go source.
+//
+// Named format constraints (email, url, uuid, ip) are also collected here
+// so that their pre-compiled regexp vars live alongside the user-defined
+// `regexp:` vars, avoiding per-call recompilation.
 func getRegexes(structName string, fields []structField) ([]Regex, error) {
 	r := []Regex{}
 
@@ -30,25 +34,55 @@ func getRegexes(structName string, fields []structField) ([]Regex, error) {
 			return nil, err
 		}
 		for _, constraint := range constraints {
-			if constraint.Name != "regexp" {
-				continue
-			}
+			switch constraint.Name {
+			case "regexp":
+				pattern := constraint.Value
+				if len(pattern) >= 2 && pattern[0] == '\'' && pattern[len(pattern)-1] == '\'' {
+					pattern = pattern[1 : len(pattern)-1]
+				}
+				if _, err := regexp.Compile(pattern); err != nil {
+					return nil, fmt.Errorf("struct %s field %s: invalid regexp %q: %w", structName, f.Name, pattern, err)
+				}
+				r = append(r, Regex{
+					StructName: structName,
+					FieldName:  f.Name,
+					Regex:      strconv.Quote(pattern),
+				})
 
-			pattern := constraint.Value
-			if len(pattern) >= 2 && pattern[0] == '\'' && pattern[len(pattern)-1] == '\'' {
-				pattern = pattern[1 : len(pattern)-1]
+			case "email":
+				r = append(r, Regex{
+					StructName: structName,
+					FieldName:  f.Name + "Email",
+					Regex:      strconv.Quote(emailPattern),
+				})
+			case "url":
+				r = append(r, Regex{
+					StructName: structName,
+					FieldName:  f.Name + "URL",
+					Regex:      strconv.Quote(urlPattern),
+				})
+			case "uuid":
+				r = append(r, Regex{
+					StructName: structName,
+					FieldName:  f.Name + "UUID",
+					Regex:      strconv.Quote(uuidPattern),
+				})
+			case "ip":
+				r = append(r, Regex{
+					StructName: structName,
+					FieldName:  f.Name + "IP",
+					Regex:      strconv.Quote(ipPattern),
+				})
 			}
-			if _, err := regexp.Compile(pattern); err != nil {
-				return nil, fmt.Errorf("struct %s field %s: invalid regexp %q: %w", structName, f.Name, pattern, err)
-			}
-
-			reg := Regex{
-				StructName: structName,
-				FieldName:  f.Name,
-				Regex:      strconv.Quote(pattern),
-			}
-			r = append(r, reg)
 		}
 	}
 	return r, nil
 }
+
+// Patterns backing the named format constraints.
+const (
+	emailPattern = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+	urlPattern   = `^(https?|ftp)://[^\s/$.?#].[^\s]*$`
+	uuidPattern  = `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`
+	ipPattern    = `^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`
+)

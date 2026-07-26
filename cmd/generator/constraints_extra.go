@@ -220,48 +220,40 @@ func getConstraintForExcludes(fieldName, value string) constraint {
 }
 
 // --- named formats: email, url, uuid, ip -----------------------------------
-
-// Patterns backing the named format constraints.
-const (
-	emailPattern = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
-	urlPattern   = `^(https?|ftp)://[^\s/$.?#].[^\s]*$`
-	uuidPattern  = `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`
-	ipPattern    = `^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`
-)
-
-// namedFormatConstraint builds the shared shape behind the named format
-// constraints: a regex match against the field.
 //
-// NOTE: the pattern is compiled inline with regexp.MustCompile, which means
-// it is recompiled on every Validate() call. This could be optimized to reuse
-// the pre-compiled package-level vars that the `regexp` constraint emits (see
-// getRegexes in regexes.go), which would require these constraints to feed
-// into the Regex collection path as well.
-func namedFormatConstraint(fieldName, pattern, format string) constraint {
+// These follow the same pre-compiled-var pattern as the `regexp:` constraint:
+// getRegexes() (in regexes.go) collects a Regex entry per named format per
+// field, and the template emits a package-level `var XxxYyyFormatRegex =
+// regexp.MustCompile(...)`. Each constraint's FieldName references that var,
+// so the regex is compiled exactly once at package init, not on every
+// Validate() call.
+
+func getConstraintForEmail(structName, fieldName string) constraint {
 	return constraint{
-		Raw:   fmt.Sprintf("!regexp.MustCompile(%s).MatchString(s.%s)", strconv.Quote(pattern), fieldName),
-		Error: fmt.Sprintf("%s is not a valid %s", strings.ToLower(fieldName), format),
+		FieldName: fmt.Sprintf("!%s%sEmailRegex.MatchString(s.%s)", structName, fieldName, fieldName),
+		Error:     fmt.Sprintf("%s is not a valid email", strings.ToLower(fieldName)),
 	}
 }
 
-// getConstraintForEmail builds the constraint for `email`.
-func getConstraintForEmail(fieldName string) constraint {
-	return namedFormatConstraint(fieldName, emailPattern, "email")
+func getConstraintForURL(structName, fieldName string) constraint {
+	return constraint{
+		FieldName: fmt.Sprintf("!%s%sURLRegex.MatchString(s.%s)", structName, fieldName, fieldName),
+		Error:     fmt.Sprintf("%s is not a valid url", strings.ToLower(fieldName)),
+	}
 }
 
-// getConstraintForURL builds the constraint for `url`.
-func getConstraintForURL(fieldName string) constraint {
-	return namedFormatConstraint(fieldName, urlPattern, "url")
+func getConstraintForUUID(structName, fieldName string) constraint {
+	return constraint{
+		FieldName: fmt.Sprintf("!%s%sUUIDRegex.MatchString(s.%s)", structName, fieldName, fieldName),
+		Error:     fmt.Sprintf("%s is not a valid uuid", strings.ToLower(fieldName)),
+	}
 }
 
-// getConstraintForUUID builds the constraint for `uuid`.
-func getConstraintForUUID(fieldName string) constraint {
-	return namedFormatConstraint(fieldName, uuidPattern, "uuid")
-}
-
-// getConstraintForIP builds the constraint for `ip`.
-func getConstraintForIP(fieldName string) constraint {
-	return namedFormatConstraint(fieldName, ipPattern, "ip address")
+func getConstraintForIP(structName, fieldName string) constraint {
+	return constraint{
+		FieldName: fmt.Sprintf("!%s%sIPRegex.MatchString(s.%s)", structName, fieldName, fieldName),
+		Error:     fmt.Sprintf("%s is not a valid ip address", strings.ToLower(fieldName)),
+	}
 }
 
 // --- cross-field comparisons ----------------------------------------------

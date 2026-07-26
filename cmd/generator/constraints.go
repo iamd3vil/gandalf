@@ -74,7 +74,7 @@ func getConstraints(structName string, fields []structField) ([]constraint, erro
 			case "contains":
 				cons = getConstraintForContains(f.Name, tc.Value)
 			case "email":
-				cons = getConstraintForEmail(f.Name)
+				cons = getConstraintForEmail(structName, f.Name)
 			case "eq":
 				cons = getConstraintForEq(f.Name, tc.Value)
 			case "excludes":
@@ -84,7 +84,7 @@ func getConstraints(structName string, fields []structField) ([]constraint, erro
 			case "gtefield":
 				cons = getConstraintForGteField(f.Name, tc.Value)
 			case "ip":
-				cons = getConstraintForIP(f.Name)
+				cons = getConstraintForIP(structName, f.Name)
 			case "len":
 				cons, err = getConstraintForLen(f.Name, f.Type, tc.Value)
 			case "ltfield":
@@ -104,9 +104,9 @@ func getConstraints(structName string, fields []structField) ([]constraint, erro
 			case "unique":
 				cons, err = getConstraintForUnique(structName, f.Name, f.Type)
 			case "url":
-				cons = getConstraintForURL(f.Name)
+				cons = getConstraintForURL(structName, f.Name)
 			case "uuid":
-				cons = getConstraintForUUID(f.Name)
+				cons = getConstraintForUUID(structName, f.Name)
 			case "validate":
 				cons, err = getConstraintForValidate(structName, f.Name, f.Type)
 			case "regexp":

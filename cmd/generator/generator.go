@@ -69,22 +69,19 @@ func generateCodeForStructs(fs stuffbin.FileSystem, pkg string, structs map[stri
 	// The generated file only imports "strings" when at least one rendered
 	// constraint expression actually uses it (contains/excludes), otherwise
 	// the generated code wouldn't compile due to an unused import.
-	// The same applies to "regexp": the named-format constraints (email,
-	// url, uuid, ip) call regexp.MustCompile inline, so the import is
-	// needed even when no `regexp:` tag produced a package-level Regex.
-	hasStrings, hasRegexp := false, false
+	hasStrings := false
 	for _, sc := range sts {
 		for _, c := range sc.Constraints {
 			if strings.Contains(c.Raw, "strings.") {
 				hasStrings = true
+				break
 			}
-			if strings.Contains(c.Raw, "regexp.") {
-				hasRegexp = true
-			}
+		}
+		if hasStrings {
+			break
 		}
 	}
 	tmplContext["HasStrings"] = hasStrings
-	tmplContext["HasRegexp"] = hasRegexp
 
 	return saveResource("struct", []string{"/templates/struct.tmpl"}, dest, tmplContext, fs)
 }

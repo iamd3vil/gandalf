@@ -3,7 +3,6 @@ package main
 import (
 	"go/parser"
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 )
@@ -236,34 +235,46 @@ func TestNewConstraintForNamedFormats(t *testing.T) {
 	tests := []struct {
 		name        string
 		got         constraint
-		wantPattern string
+		wantField   string
 		wantErr     string
 	}{
-		{name: "email", got: getConstraintForEmail("Email"), wantPattern: emailPattern, wantErr: "email is not a valid email"},
-		{name: "url", got: getConstraintForURL("Site"), wantPattern: urlPattern, wantErr: "site is not a valid url"},
-		{name: "uuid", got: getConstraintForUUID("ID"), wantPattern: uuidPattern, wantErr: "id is not a valid uuid"},
-		{name: "ip", got: getConstraintForIP("Addr"), wantPattern: ipPattern, wantErr: "addr is not a valid ip address"},
+		{
+			name:      "email",
+			got:       getConstraintForEmail("Account", "Email"),
+			wantField: "!AccountEmailEmailRegex.MatchString(s.Email)",
+			wantErr:   "email is not a valid email",
+		},
+		{
+			name:      "url",
+			got:       getConstraintForURL("Page", "Site"),
+			wantField: "!PageSiteURLRegex.MatchString(s.Site)",
+			wantErr:   "site is not a valid url",
+		},
+		{
+			name:      "uuid",
+			got:       getConstraintForUUID("Record", "ID"),
+			wantField: "!RecordIDUUIDRegex.MatchString(s.ID)",
+			wantErr:   "id is not a valid uuid",
+		},
+		{
+			name:      "ip",
+			got:       getConstraintForIP("Server", "Addr"),
+			wantField: "!ServerAddrIPRegex.MatchString(s.Addr)",
+			wantErr:   "addr is not a valid ip address",
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if !strings.Contains(tc.got.Raw, "regexp.MustCompile") {
-				t.Errorf("Raw doesn't compile a regexp: %q", tc.got.Raw)
-			}
-			if !strings.HasPrefix(tc.got.Raw, "!") {
-				t.Errorf("Raw should be a negated match (failure condition): %q", tc.got.Raw)
-			}
-			if !strings.Contains(tc.got.Raw, ".MatchString(s.") {
-				t.Errorf("Raw doesn't match against the field: %q", tc.got.Raw)
-			}
-			// The pattern must be present as a quoted Go string literal.
-			if !strings.Contains(tc.got.Raw, strconv.Quote(tc.wantPattern)) {
-				t.Errorf("Raw %q doesn't contain quoted pattern for %s", tc.got.Raw, tc.wantPattern)
+			if tc.got.FieldName != tc.wantField {
+				t.Errorf("FieldName = %q, want %q", tc.got.FieldName, tc.wantField)
 			}
 			if tc.got.Error != tc.wantErr {
 				t.Errorf("Error = %q, want %q", tc.got.Error, tc.wantErr)
 			}
-			assertOnlyRawSet(t, tc.got)
+			if tc.got.Raw != "" {
+				t.Errorf("Raw should be empty (uses pre-compiled var), got %q", tc.got.Raw)
+			}
 		})
 	}
 }
