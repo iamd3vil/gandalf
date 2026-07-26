@@ -3,8 +3,11 @@ package {{.Pkg}}
 
 import (
     "errors"
-    {{- if .Regexes}}
+    {{- if or .Regexes .HasRegexp}}
     "regexp"
+    {{- end}}
+    {{- if .HasStrings}}
+    "strings"
     {{- end}}
 )
 

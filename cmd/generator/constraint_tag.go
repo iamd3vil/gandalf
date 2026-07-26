@@ -12,9 +12,9 @@ type tagConstraint struct {
 	Value string
 }
 
-// constraintsRequiringValue lists every constraint name that must be
-// followed by a ":value" segment. Constraints not listed here (currently
-// only "required") take no value.
+// constraintsRequiringValue lists every constraint name and whether it must
+// be followed by a ":value" segment. Names mapped to false (and names absent
+// from the map entirely, such as "required") take no value.
 var constraintsRequiringValue = map[string]bool{
 	"min":     true,
 	"mineq":   true,
@@ -22,6 +22,37 @@ var constraintsRequiringValue = map[string]bool{
 	"maxeq":   true,
 	"eqfield": true,
 	"regexp":  true,
+
+	// Value constraints.
+	"eq":    true,
+	"ne":    true,
+	"oneof": true,
+	"len":   true,
+
+	// Cross-field constraints.
+	"nefield":  true,
+	"gtfield":  true,
+	"ltfield":  true,
+	"gtefield": true,
+
+	// String membership.
+	"contains": true,
+	"excludes": true,
+
+	// Conditional required.
+	"required_with":    true,
+	"required_without": true,
+	"required_if":      true,
+
+	// Named formats take no value.
+	"email": false,
+	"url":   false,
+	"uuid":  false,
+	"ip":    false,
+
+	// Slice uniqueness and nested validation take no value.
+	"unique":   false,
+	"validate": false,
 }
 
 // parseValidateTag is the single shared parser for `validate` struct tags,

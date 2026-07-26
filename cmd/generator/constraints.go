@@ -71,6 +71,44 @@ func getConstraints(structName string, fields []structField) ([]constraint, erro
 				cons, err = getConstraintForMaxEq(structName, f.Name, f.Type, tc.Value)
 			case "eqfield":
 				cons = getConstraintForEqField(f.Name, tc.Value)
+			case "contains":
+				cons = getConstraintForContains(f.Name, tc.Value)
+			case "email":
+				cons = getConstraintForEmail(f.Name)
+			case "eq":
+				cons = getConstraintForEq(f.Name, tc.Value)
+			case "excludes":
+				cons = getConstraintForExcludes(f.Name, tc.Value)
+			case "gtfield":
+				cons = getConstraintForGtField(f.Name, tc.Value)
+			case "gtefield":
+				cons = getConstraintForGteField(f.Name, tc.Value)
+			case "ip":
+				cons = getConstraintForIP(f.Name)
+			case "len":
+				cons, err = getConstraintForLen(f.Name, f.Type, tc.Value)
+			case "ltfield":
+				cons = getConstraintForLtField(f.Name, tc.Value)
+			case "ne":
+				cons = getConstraintForNe(f.Name, tc.Value)
+			case "nefield":
+				cons = getConstraintForNeField(f.Name, tc.Value)
+			case "oneof":
+				cons = getConstraintForOneOf(f.Name, tc.Value)
+			case "required_if":
+				cons, err = getConstraintForRequiredIf(structName, f.Name, f.Type, tc.Value)
+			case "required_with":
+				cons = getConstraintForRequiredWith(f.Name, tc.Value)
+			case "required_without":
+				cons = getConstraintForRequiredWithout(f.Name, tc.Value)
+			case "unique":
+				cons, err = getConstraintForUnique(structName, f.Name, f.Type)
+			case "url":
+				cons = getConstraintForURL(f.Name)
+			case "uuid":
+				cons = getConstraintForUUID(f.Name)
+			case "validate":
+				cons, err = getConstraintForValidate(structName, f.Name, f.Type)
 			case "regexp":
 				if f.Type != "string" {
 					err = fmt.Errorf("struct %s, field %s: regexp is not supported for type %s", structName, f.Name, f.Type)
