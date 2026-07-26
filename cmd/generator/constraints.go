@@ -5,104 +5,176 @@ import (
 	"strings"
 )
 
-func getConstraints(structName string, fields []structField) []constraint {
-	cs := []constraint{}
-	for _, f := range fields {
-		conditions := strings.Split(f.Tag, " ")
-		for _, cond := range conditions {
-			c := strings.Split(cond, ":")
-			switch c[0] {
-			case "required":
-				cons := getConstraintForRequired(f.Name, f.Type)
-				cs = append(cs, cons)
-			case "min":
-				cons := getConstraintForMin(f.Name, f.Type, c[1])
-				cs = append(cs, cons)
-			case "mineq":
-				cons := getConstraintForMinEq(f.Name, f.Type, c[1])
-				cs = append(cs, cons)
-			case "maxeq":
-				cons := getConstraintForMaxEq(f.Name, f.Type, c[1])
-				cs = append(cs, cons)
-			case "max":
-				cons := getConstraintForMax(f.Name, f.Type, c[1])
-				cs = append(cs, cons)
-			case "eqfield":
-				cons := getConstraintForEqField(f.Name, c[1])
-				cs = append(cs, cons)
-			case "regexp":
-				cons := getConstraintForRegex(f.Name, structName, c[1])
-				cs = append(cs, cons)
-			}
-		}
-	}
-	return cs
+// numericFieldTypes lists every built-in Go numeric type name (plus the
+// "byte" and "rune" aliases) whose zero value can be compared directly
+// against the untyped constant 0. complex64/complex128 are deliberately
+// included here: Go allows comparing a complex value with the untyped
+// constant 0 (e.g. `s.Field == 0`), so they're treated the same as any
+// other numeric type for "required".
+var numericFieldTypes = map[string]bool{
+	"int": true, "int8": true, "int16": true, "int32": true, "int64": true,
+	"uint": true, "uint8": true, "uint16": true, "uint32": true, "uint64": true, "uintptr": true,
+	"float32": true, "float64": true,
+	"complex64": true, "complex128": true,
+	"byte": true, "rune": true,
 }
 
-func getConstraintForRequired(name, typ string) constraint {
+// typeCategory classifies a rendered field type string (see
+// renderFieldType in parser.go) into the shape that matters for picking a
+// safe constraint comparison. It relies on the fact that renderFieldType
+// always produces one of a small set of unambiguous prefixes for
+// slices/arrays/maps/pointers, falling back to a "selector" for any
+// remaining package-qualified identifier (e.g. "pkg.User") and "ident" for
+// a plain identifier (built-in or locally defined type name).
+func typeCategory(typ string) string {
+	switch {
+	case strings.HasPrefix(typ, "[]"):
+		return "slice"
+	case strings.HasPrefix(typ, "["):
+		return "array"
+	case strings.HasPrefix(typ, "map["):
+		return "map"
+	case strings.HasPrefix(typ, "*"):
+		return "pointer"
+	case strings.Contains(typ, "."):
+		return "selector"
+	default:
+		return "ident"
+	}
+}
+
+// getConstraints turns every `validate` tag on fields into the constraints
+// used to render the generated Validate() method. Constraint parsing errors
+// (a malformed tag, an unknown constraint, or a constraint that isn't
+// supported for the field's type) are returned with struct and field
+// context rather than silently ignored or panicking.
+func getConstraints(structName string, fields []structField) ([]constraint, error) {
+	cs := []constraint{}
+	for _, f := range fields {
+		tagConstraints, err := parseValidateTag(structName, f.Name, f.Tag)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, tc := range tagConstraints {
+			var cons constraint
+			switch tc.Name {
+			case "required":
+				cons, err = getConstraintForRequired(structName, f.Name, f.Type)
+			case "min":
+				cons, err = getConstraintForMin(structName, f.Name, f.Type, tc.Value)
+			case "mineq":
+				cons, err = getConstraintForMinEq(structName, f.Name, f.Type, tc.Value)
+			case "max":
+				cons, err = getConstraintForMax(structName, f.Name, f.Type, tc.Value)
+			case "maxeq":
+				cons, err = getConstraintForMaxEq(structName, f.Name, f.Type, tc.Value)
+			case "eqfield":
+				cons = getConstraintForEqField(f.Name, tc.Value)
+			case "regexp":
+				if f.Type != "string" {
+					err = fmt.Errorf("struct %s, field %s: regexp is not supported for type %s", structName, f.Name, f.Type)
+					break
+				}
+				cons = getConstraintForRegex(f.Name, structName, tc.Value)
+			default:
+				err = fmt.Errorf("struct %s, field %s: unknown constraint %q", structName, f.Name, tc.Name)
+			}
+			if err != nil {
+				return nil, err
+			}
+			cs = append(cs, cons)
+		}
+	}
+	return cs, nil
+}
+
+func getConstraintForRequired(structName, name, typ string) (constraint, error) {
 	c := constraint{
 		FieldName: fmt.Sprintf("s.%s", name),
 		Op:        "==",
 		Error:     fmt.Sprintf("%s can't be blank", strings.ToLower(name)),
 	}
 
-	switch typ {
-	case "string":
+	switch {
+	case typ == "string":
 		c.Value = "\"\""
-	case "int", "int32", "int64", "int16", "float64", "float32":
+		return c, nil
+	case typ == "bool":
+		c.Value = "false"
+		return c, nil
+	case numericFieldTypes[typ]:
 		c.Value = "0"
-	default:
+		return c, nil
+	}
+
+	switch typeCategory(typ) {
+	case "slice", "map", "pointer":
 		c.Value = "nil"
+		return c, nil
+	case "array":
+		return constraint{}, fmt.Errorf("struct %s, field %s: required is not supported for array type %s (arrays are never nil); use min/max on its length instead", structName, name, typ)
+	case "selector":
+		return constraint{}, fmt.Errorf("struct %s, field %s: required is not supported for qualified type %s; wrap it in a pointer (e.g. *%s) to check for nil", structName, name, typ, typ)
+	default:
+		return constraint{}, fmt.Errorf("struct %s, field %s: required is not supported for type %s", structName, name, typ)
 	}
-	return c
 }
 
-func getConstraintForMin(name, typ, value string) constraint {
+func getConstraintForMin(structName, name, typ, value string) (constraint, error) {
+	return minMaxConstraint(structName, name, typ, value, "<", "min",
+		fmt.Sprintf("%s can't be less than %s", strings.ToLower(name), value))
+}
+
+func getConstraintForMax(structName, name, typ, value string) (constraint, error) {
+	return minMaxConstraint(structName, name, typ, value, ">", "max",
+		fmt.Sprintf("%s can't be greater than %s", strings.ToLower(name), value))
+}
+
+func getConstraintForMinEq(structName, name, typ, value string) (constraint, error) {
+	c, err := minMaxConstraint(structName, name, typ, value, "<=", "mineq",
+		fmt.Sprintf("%s can't be less than %s", strings.ToLower(name), value))
+	return c, err
+}
+
+func getConstraintForMaxEq(structName, name, typ, value string) (constraint, error) {
+	c, err := minMaxConstraint(structName, name, typ, value, ">=", "maxeq",
+		fmt.Sprintf("%s can't be greater than %s", strings.ToLower(name), value))
+	return c, err
+}
+
+// minMaxConstraint builds the shared shape behind min/mineq/max/maxeq: a
+// direct comparison for strings (by length) and numeric types, a len()
+// comparison for slices/arrays/maps, and a descriptive error for any type
+// it isn't safe to compare this way (pointers, selectors, bools, and any
+// other unrecognised type).
+func minMaxConstraint(structName, name, typ, value, op, constraintName, errMsg string) (constraint, error) {
 	c := constraint{
 		FieldName: fmt.Sprintf("s.%s", name),
-		Op:        "<",
+		Op:        op,
 		Value:     value,
-		Error:     fmt.Sprintf("%s can't be less than %s", strings.ToLower(name), value),
+		Error:     errMsg,
 	}
-	switch typ {
-	case "string":
-		c.FieldName = fmt.Sprintf("len(s.%s)", name)
-	}
-	// Handle arrays
-	if strings.HasPrefix(typ, "[]") || strings.HasPrefix(typ, "map") {
-		c.FieldName = fmt.Sprintf("len(s.%s)", name)
-	}
-	return c
-}
 
-func getConstraintForMax(name, typ, value string) constraint {
-	c := constraint{
-		FieldName: fmt.Sprintf("s.%s", name),
-		Op:        ">",
-		Value:     value,
-		Error:     fmt.Sprintf("%s can't be greather than %s", strings.ToLower(name), value),
-	}
-	switch typ {
-	case "string":
+	if typ == "string" {
 		c.FieldName = fmt.Sprintf("len(s.%s)", name)
+		return c, nil
 	}
-	// Handle arrays
-	if strings.HasPrefix(typ, "[]") || strings.HasPrefix(typ, "map") {
+	if numericFieldTypes[typ] {
+		return c, nil
+	}
+
+	switch typeCategory(typ) {
+	case "slice", "array", "map":
 		c.FieldName = fmt.Sprintf("len(s.%s)", name)
+		return c, nil
+	case "pointer":
+		return constraint{}, fmt.Errorf("struct %s, field %s: %s is not supported for pointer type %s", structName, name, constraintName, typ)
+	case "selector":
+		return constraint{}, fmt.Errorf("struct %s, field %s: %s is not supported for qualified type %s", structName, name, constraintName, typ)
+	default:
+		return constraint{}, fmt.Errorf("struct %s, field %s: %s is not supported for type %s", structName, name, constraintName, typ)
 	}
-	return c
-}
-
-func getConstraintForMinEq(name, typ, value string) constraint {
-	cons := getConstraintForMin(name, typ, value)
-	cons.Op = "<="
-	return cons
-}
-
-func getConstraintForMaxEq(name, typ, value string) constraint {
-	cons := getConstraintForMax(name, typ, value)
-	cons.Op = ">="
-	return cons
 }
 
 func getConstraintForEqField(name, value string) constraint {
