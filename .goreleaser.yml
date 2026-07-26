@@ -1,6 +1,5 @@
 env:
-    - CGO_ENABLED=0
-    - RELEASE_BUILDS=dist/gandalf_darwin_amd64/gandalf dist/gandalf_linux_amd64/gandalf dist/gandalf_windows_amd64/gandalf.exe dist/gandalf_linux_arm64/gandalf 
+  - CGO_ENABLED=0
 builds:
   - binary: gandalf
     goos:
@@ -14,9 +13,12 @@ builds:
     ldflags:
       - -s -w -X "main.buildVersion={{ .Tag }} ({{ .ShortCommit }} {{ .Date }})"
     hooks:
-      # stuff executables with static assets.
-      post: make pack-releases
-  
+      # stuff each freshly-built binary with static templates.
+      # {{ .Path }} resolves to the absolute path of the binary goreleaser
+      # just built for the current target (robust to its variant-suffixed
+      # output dirs, e.g. gandalf_linux_arm64_v8.0/).
+      post: stuffbin -a stuff -in {{ .Path }} -out {{ .Path }} ./templates:/templates
+
 archives:
   - format: tar.gz
     files:

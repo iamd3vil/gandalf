@@ -24,9 +24,10 @@ jobs:
           cache: true
 
       - name: Install stuffbin
-        # goreleaser's post hook runs `make pack-releases`, which invokes
-        # stuffbin to embed templates into the cross-compiled binaries.
-        run: go install github.com/knadh/stuffbin/stuffbin@latest
+        # goreleaser's post hook invokes stuffbin to embed ./templates into
+        # each cross-compiled binary. Pinned to v1.1.0 to match the library
+        # version imported by the generator (see go.mod).
+        run: go install github.com/knadh/stuffbin/stuffbin@v1.1.0
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
