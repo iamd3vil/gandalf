@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"sort"
 
 	"github.com/knadh/stuffbin"
 )
@@ -24,22 +25,37 @@ func generateCodeForStructs(fs stuffbin.FileSystem, pkg string, structs map[stri
 	tmplContext["BuildDate"] = buildDate
 	tmplContext["BuildVersion"] = buildVersion
 
+	// Sort struct names so that generated regex declarations and Validate
+	// methods always appear in the same, deterministic order regardless of
+	// Go's randomized map iteration order.
+	names := make([]string, 0, len(structs))
+	for name := range structs {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
 	// Check and aggregate all Regexes
 	regexes := []Regex{}
-	for name, fields := range structs {
-		rs := getRegexes(name, fields)
+	for _, name := range names {
+		rs, err := getRegexes(name, structs[name])
+		if err != nil {
+			return err
+		}
 		regexes = append(regexes, rs...)
 	}
 
 	tmplContext["Regexes"] = regexes
 
-	sts := make([]structContext, 0)
-	for name, fields := range structs {
-		sctx := structContext{
-			StructName:  name,
-			Constraints: getConstraints(name, fields),
+	sts := make([]structContext, 0, len(names))
+	for _, name := range names {
+		constraints, err := getConstraints(name, structs[name])
+		if err != nil {
+			return err
 		}
-		sts = append(sts, sctx)
+		sts = append(sts, structContext{
+			StructName:  name,
+			Constraints: constraints,
+		})
 	}
 
 	tmplContext["Structs"] = sts

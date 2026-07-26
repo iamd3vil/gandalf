@@ -11,7 +11,7 @@ import (
 {{if .Regexes}}
 var (
     {{- range .Regexes}}
-    {{.StructName}}{{.FieldName}}Regex = regexp.MustCompile("{{.Regex}}")
+    {{.StructName}}{{.FieldName}}Regex = regexp.MustCompile({{.Regex}})
     {{- end}}
 )
 {{end}}
